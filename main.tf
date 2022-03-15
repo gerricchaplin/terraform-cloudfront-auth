@@ -68,8 +68,12 @@ data "local_file" "build-js" {
 #
 resource "aws_s3_bucket" "default" {
   bucket = var.bucket_name
-  acl    = "private"
   tags   = var.tags
+}
+
+resource "aws_s3_bucket_acl" "default" {
+  bucket = aws_s3_bucket.default.id
+  acl    = "public-read"
 }
 
 # Block direct public access
