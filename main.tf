@@ -7,11 +7,12 @@ resource "null_resource" "copy_source" {
 if [ ! -d "build" ]; then
   if [ ! -L "build" ]; then
     curl -L https://github.com/Widen/cloudfront-auth/archive/master.zip --output cloudfront-auth-master.zip
-    unzip -q cloudfront-auth-master.zip -d build/
-    mkdir build/cloudfront-auth-master/distributions
+    mkdir -p /tmp/build/
+    unzip -q cloudfront-auth-master.zip -d /tmp/build/
+    mkdir /tmp/build/cloudfront-auth-master/distributions
 
-    cp ${data.local_file.build-js.filename} build/cloudfront-auth-master/build/build.js
-    cd build/cloudfront-auth-master && npm i minimist && npm install && cd build && npm install
+    cp ${data.local_file.build-js.filename} /tmp/build/cloudfront-auth-master/build/build.js
+    cd /tmp/build/cloudfront-auth-master && npm i minimist && npm install && cd build && npm install
   fi
 fi
 EOF
@@ -47,7 +48,7 @@ resource "null_resource" "copy_lambda_artifact" {
   }
 
   provisioner "local-exec" {
-    command = "cp build/cloudfront-auth-master/distributions/${var.cloudfront_distribution}/${var.cloudfront_distribution}.zip ${local.lambda_filename}"
+    command = "cp /tmp/build/cloudfront-auth-master/distributions/${var.cloudfront_distribution}/${var.cloudfront_distribution}.zip ${local.lambda_filename}"
   }
 }
 
@@ -68,8 +69,12 @@ data "local_file" "build-js" {
 #
 resource "aws_s3_bucket" "default" {
   bucket = var.bucket_name
-  acl    = "private"
   tags   = var.tags
+}
+
+resource "aws_s3_bucket_acl" "default" {
+  bucket = aws_s3_bucket.default.id
+  acl    = "public-read"
 }
 
 # Block direct public access
